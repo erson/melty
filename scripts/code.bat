@@ -5,6 +5,13 @@ title VSCode Dev
 
 pushd %~dp0\..
 
+:: Check for ternary-stream module
+npm list ternary-stream >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Missing ternary-stream module. Installing...
+    npm install ternary-stream
+)
+
 :: Get electron, compile, built-in extensions
 if "%VSCODE_SKIP_PRELAUNCH%"=="" node build/lib/preLaunch.js
 
@@ -25,9 +32,9 @@ set ELECTRON_ENABLE_STACK_DUMPING=1
 
 set DISABLE_TEST_EXTENSION="--disable-extension=vscode.vscode-api-tests"
 for %%A in (%*) do (
-	if "%%~A"=="--extensionTestsPath" (
-		set DISABLE_TEST_EXTENSION=""
-	)
+    if "%%~A"=="--extensionTestsPath" (
+        set DISABLE_TEST_EXTENSION=""
+    )
 )
 
 :: Launch Code
