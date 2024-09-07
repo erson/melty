@@ -27,5 +27,4 @@ popd
 :: Launch Server
 call "%NODE%" %ROOT_DIR%\scripts\code-server.js %*
 
-
 endlocal
