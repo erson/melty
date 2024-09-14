@@ -1,48 +1,38 @@
-import { Conversation, ClaudeMessage, Joule, ContextPaths } from "../../types";
+import { Conversation, ClaudeMessage, Joule, JouleType, ContextPaths } from "../../types";
 import * as joules from "../joules";
 import fs from "fs";
 import path from "path";
 import { getUserPrompt } from "../../util/config";
+import * as vscode from "vscode";
 
 export abstract class BaseAssistant {
 	static get description(): string {
 		throw new Error("Description must be implemented in subclass");
 	}
 
-	abstract respond(
+	abstract responders: Map<JouleType, (
 		conversation: Conversation,
 		contextPaths: ContextPaths,
-		processPartial: (partialConversation: Conversation) => void
-	): Promise<Conversation>;
+		sendPartialJoule: (partialJoule: Joule) => void,
+		cancellationToken?: vscode.CancellationToken
+	) => Promise<Joule>>;
+
+	protected encodeUserPrompt(): ClaudeMessage[] {
+		const userPrompt = getUserPrompt();
+		return [{
+			role: "user",
+			content: userPrompt,
+		}, {
+			role: "assistant",
+			content: "Understood. I'll keep that in mind throughout our conversation.",
+		}
+		];
+	}
 
 	protected encodeMessages(conversation: Conversation): ClaudeMessage[] {
-		const userPrompt = getUserPrompt();
-		const messages: ClaudeMessage[] = [];
-
-		if (userPrompt) {
-			messages.push({
-				role: "user",
-				content: userPrompt,
-			});
-			messages.push({
-				role: "assistant",
-				content:
-					"Understood. I'll keep that in mind throughout our conversation.",
-			});
-		}
-
-		function authorToRole(author: "human" | "bot"): "user" | "assistant" {
-			return author === "human" ? "user" : "assistant";
-		}
-
-		messages.push(
-			...conversation.joules.map((joule: Joule) => ({
-				role: authorToRole(joule.author),
-				content: joules.formatMessageForClaude(joule),
-			}))
-		);
-
-		return messages;
+		return [
+			...conversation.joules.map(joules.encodeJouleForClaude)
+		].filter(m => m !== null);
 	}
 
 	/**
@@ -66,7 +56,7 @@ ${fileContents.endsWith("\n") ? fileContents : fileContents + "\n"}
 		repoMapString: string
 	): ClaudeMessage[] {
 		const codebaseSummary = `<codebase_summary>
-${repoMapString ? repoMapString : "[No summary provided.]"}
+${repoMapString ? repoMapString : "[No file summaries available.]"}
 </codebase_summary>`;
 
 		const fileContents = contextPaths.paths
@@ -81,7 +71,7 @@ ${codebaseSummary}
 ${fileContents}
 </codebase_view>`,
 			},
-			{ role: "assistant", content: "Thanks, I'll review this carefully." },
+			// { role: "assistant", content: "Thanks, I'll review this carefully." },
 		];
 	}
 }

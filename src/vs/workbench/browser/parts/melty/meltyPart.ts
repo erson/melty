@@ -152,12 +152,33 @@ export class MeltyPart extends Part {
 	private open() {
 		this.state = 'open';
 		this.fullScreenOverlay!.style.zIndex = '95';
-		this.webviewView!.webview.container.style.display = 'flex';
-		this.webviewView!.webview.container.style.boxSizing = 'border-box';
-		this.webviewView!.webview.container.style.boxShadow = '0 0 20px 0 rgba(0, 0, 0, 0.5)';
-		this.webviewView!.webview.container.style.borderRadius = '20px';
-		this.webviewView!.webview.container.style.backgroundColor = 'black';
-		this.webviewView!.webview.container.style.zIndex = '100';
+
+		const container = this.webviewView!.webview.container;
+		container.style.display = 'flex';
+		container.style.boxSizing = 'border-box';
+		container.style.boxShadow = '0 0 20px 0 rgba(0, 0, 0, 0.5)';
+		container.style.borderRadius = '20px';
+		container.style.backgroundColor = 'white';
+		container.style.zIndex = '100';
+
+		// Add faster bounce animation
+		container.style.animation = 'meltyBounceIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+		container.style.transformOrigin = 'center';
+
+		// Define keyframes for faster bounce animation and fade out
+		const style = document.createElement('style');
+		style.textContent = `
+			@keyframes meltyBounceIn {
+				0% { transform: scale(0.95); opacity: 0; }
+				70% { transform: scale(1.02); opacity: 1; }
+				100% { transform: scale(1); opacity: 1; }
+			}
+			@keyframes meltyFadeOut {
+				0% { opacity: 1; }
+				100% { opacity: 0; }
+			}
+		`;
+		document.head.appendChild(style);
 
 		this.fullScreenOverlay?.addEventListener("click", (() => {
 			this.close();
@@ -169,9 +190,16 @@ export class MeltyPart extends Part {
 
 	private close() {
 		this.state = 'closed';
-		// this.fullScreenOverlay!.style.display = 'none';
-		this.fullScreenOverlay!.style.zIndex = '-10';
-		this.webviewView!.webview.container.style.display = 'none';
+		const container = this.webviewView!.webview.container;
+
+		// Apply fade-out animation
+		container.style.animation = 'meltyFadeOut 0.2s ease-out';
+
+		// Hide elements after animation completes
+		setTimeout(() => {
+			this.fullScreenOverlay!.style.zIndex = '-10';
+			container.style.display = 'none';
+		}, 20); // 20ms matches the animation duration
 	}
 
 	private toggleOpenClose() {

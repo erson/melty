@@ -6,9 +6,9 @@
   "publisher": "meltylabs",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YourUsername/melty.git"
+    "url": "https://github.com/meltylabs/melty.git"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "icon": "resources/melty.png",
   "galleryBanner": {
@@ -32,7 +32,16 @@
     "onStartupFinished"
   ],
   "contributes": {
-    "commands": [],
+    "commands": [
+      {
+        "command": "melty.copySettings",
+        "title": "Melty: Copy VS Code Settings"
+      },
+      {
+        "command": "melty.copyExtensions",
+        "title": "Melty: Copy VS Code extensions"
+      }
+    ],
     "keybindings": [],
     "configuration": {
       "title": "Melty Settings",
@@ -40,7 +49,14 @@
         "melty.anthropicApiKey": {
           "type": "string",
           "default": "",
-          "description": "API key for Anthropic Claude"
+          "description": "API key for Anthropic Claude",
+          "pattern": "^[a-zA-Z0-9-_]*$"
+        },
+        "melty.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for OpenAI",
+          "pattern": "^[a-zA-Z0-9-_]*$"
         },
         "melty.userPrompt": {
           "type": "string",
@@ -55,7 +71,8 @@
         "melty.githubToken": {
           "type": "string",
           "default": "",
-          "description": "GitHub token for creating pull requests"
+          "description": "GitHub token for creating pull requests",
+          "pattern": "^[a-zA-Z0-9-_]*$"
         },
         "melty.remoteName": {
           "type": "string",
@@ -78,7 +95,6 @@
             "**/out/**",
             "**/build/**",
             "**/dist/**",
-            "**/lib/**",
             "**/out-build/**"
           ],
           "description": "Glob patterns to exclude from Melty's file watching and processing. Users can modify this list to customize exclusions."
@@ -87,6 +103,11 @@
           "type": "string",
           "default": "~/.melty",
           "description": "The directory where Melty will store its data. Use '~' for the home directory. Default is '~/.melty'."
+        },
+        "melty.debugMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug mode"
         }
       }
     }
@@ -139,6 +160,7 @@
     "diff": "^6.0.0-beta",
     "dotenv": "^16.4.5",
     "node-tree-sitter": "^0.0.1",
+    "openai": "^4.60.0",
     "posthog-js": "^1.157.2",
     "python-ast": "^0.1.0",
     "tree-sitter-wasms": "^0.1.11",

@@ -5,6 +5,11 @@ export function getUserPrompt(): string {
 	return config.get<string>("userPrompt", "");
 }
 
+export function getDebugMode(): boolean {
+	const config = vscode.workspace.getConfiguration("melty");
+	return config.get<boolean>("debugMode", false);
+}
+
 const EXCLUDES = [
 	"**/node_modules/**",
 	"**/.melty/**",
@@ -34,10 +39,6 @@ export function getExcludesGlob(): string {
 	const allExcludes = [...EXCLUDES, ...userExcludes];
 	return `{${allExcludes.join(",")}}`;
 }
-
-export const STRICT_GIT = false;
-
-export const DEV_MODE = true;
 
 export function getIsAutocommitMode(): boolean {
 	const config = vscode.workspace.getConfiguration("melty");

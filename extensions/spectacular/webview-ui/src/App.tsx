@@ -12,7 +12,8 @@ import { Help } from "./components/Help";
 import { NavBar } from "./components/NavBar";
 import { Onboarding } from "./components/Onboarding";
 import { EventManager } from './eventManager';
-import { RpcClient } from "RpcClient";
+import { RpcClient } from "./RpcClient";
+import { MeltyConfigProvider } from '@/MeltyConfig';
 import "./App.css";
 
 const rpcClient = RpcClient.getInstance();
@@ -53,28 +54,30 @@ function AppContent() {
 	}
 
 	return (
-		<main className={theme === 'dark' ? 'dark' : ''}>
-			{!showOnboarding && !isTaskRoute && <NavBar />}
-			<div className="bg-background text-foreground px-4">
-				<Routes>
-					<Route
-						path="/onboarding"
-						element={
-							<Onboarding
-								onComplete={() => {
-									setShowOnboarding(false);
-									rpcClient.run("setOnboardingComplete", {});
-								}}
-							/>
-						}
-					/>
-					<Route path="/task/:taskId" element={<ConversationView />} />
-					<Route path="/" element={<Tasks />} />
-					<Route path="/help" element={<Help />} />
-					<Route path="*" element={<Navigate to="/" replace />} />
-				</Routes>
-			</div>
-		</main>
+		<MeltyConfigProvider>
+			<main className={theme === 'dark' ? 'dark' : ''}>
+				{!showOnboarding && !isTaskRoute && <NavBar />}
+				<div className="bg-background text-foreground px-4">
+					<Routes>
+						<Route
+							path="/onboarding"
+							element={
+								<Onboarding
+									onComplete={() => {
+										setShowOnboarding(false);
+										rpcClient.run("setOnboardingComplete", {});
+									}}
+								/>
+							}
+						/>
+						<Route path="/task/:taskId" element={<ConversationView />} />
+						<Route path="/" element={<Tasks />} />
+						<Route path="/help" element={<Help />} />
+						<Route path="*" element={<Navigate to="/" replace />} />
+					</Routes>
+				</div>
+			</main>
+		</MeltyConfigProvider>
 	);
 }
 

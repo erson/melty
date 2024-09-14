@@ -7,7 +7,7 @@ import {
 } from "vscode";
 import * as vscode from "vscode";
 import { getUri, getNonce } from "./util/utils";
-import { Conversation, TaskMode } from "./types";
+import { TaskMode, MeltyConfig } from "./types";
 import { MeltyExtension } from "./extension";
 import { createNewDehydratedTask } from "./backend/tasks";
 import * as config from "./util/config";
@@ -20,7 +20,6 @@ import { GitManager } from "./services/GitManager";
 import { GitHubManager } from './services/GitHubManager';
 import { TaskManager } from './services/TaskManager';
 import posthog from "posthog-js";
-import { create } from 'domain';
 
 /**
  * This class manages the state and behavior of HelloWorld webview panels.
@@ -114,16 +113,14 @@ export class HelloWorldPanel implements WebviewViewProvider {
 		const stylesUri = getUri(webview, this._extensionUri, [
 			"webview-ui",
 			"build",
-			"static",
-			"css",
+			"assets",
 			"main.css",
 		]);
 		// The JS file from the React build output
 		const scriptUri = getUri(webview, this._extensionUri, [
 			"webview-ui",
 			"build",
-			"static",
-			"js",
+			"assets",
 			"main.js",
 		]);
 
@@ -177,10 +174,6 @@ export class HelloWorldPanel implements WebviewViewProvider {
 						});
 					})
 					.catch((error) => {
-						if (config.DEV_MODE) {
-							throw error;
-						}
-
 						console.log(
 							`[RPC Server] sending RPCresponse for ${message.id} with error ${error.message}`
 						);
@@ -190,6 +183,7 @@ export class HelloWorldPanel implements WebviewViewProvider {
 							id: message.id,
 							error: error.message,
 						});
+						vscode.window.showErrorMessage(error); // for dev; remove this in prod
 					});
 			}
 		});
@@ -229,10 +223,15 @@ export class HelloWorldPanel implements WebviewViewProvider {
 					return await this.rpcUndoLatestCommit(params.commitId);
 				case "getLatestCommit":
 					return this.rpcGetLatestCommit();
-				case "chatMessage":
-					return await this.rpcStartResponse(
-						params.text, params.taskId
+				case "startBotTurn":
+					this.rpcStartBotTurn(
+						params.taskId
 					);
+					return undefined;
+				case "createJouleHumanChat":
+					return this.rpcJouleHumanChat(params.taskId, params.text);
+				case "createJouleHumanConfirmCode":
+					return this.rpcJouleHumanConfirmCode(params.taskId, params.confirmed);
 				case "createTask":
 					return await this.rpcCreateTask(
 						params.name,
@@ -259,6 +258,8 @@ export class HelloWorldPanel implements WebviewViewProvider {
 					return this.rpcCheckOnboardingComplete();
 				case "setOnboardingComplete":
 					return this.rpcSetOnboardingComplete();
+				case "getMeltyConfig":
+					return this.rpcGetMeltyConfig();
 				default:
 					throw new Error(`Unknown RPC method: ${method}`);
 			}
@@ -275,7 +276,8 @@ export class HelloWorldPanel implements WebviewViewProvider {
 				);
 			}
 
-			if (method === "chatMessage") {
+			if (method === "startBotTurn") {
+				// TODO revisit error handling for rpcHumanChat
 				await this.notifyWebviewOfChatError(params.taskId, errorMessage);
 				await WebviewNotifier.getInstance().resetStatusMessage();
 			}
@@ -338,7 +340,7 @@ export class HelloWorldPanel implements WebviewViewProvider {
 			// 	{ uri: newFolderUri }
 			// );
 
-			const openResult: any = await vscode.commands.executeCommand('vscode.openFolder', newFolderUri, false)
+			const openResult: any = await vscode.commands.executeCommand('vscode.openFolder', newFolderUri, false);
 			return openResult === undefined;
 		} else {
 			return false;
@@ -465,12 +467,28 @@ export class HelloWorldPanel implements WebviewViewProvider {
 		return vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ? 'dark' : 'light';
 	}
 
-	private async rpcStartResponse(text: string, taskId: string): Promise<boolean> {
+	private async rpcJouleHumanConfirmCode(taskId: string, confirmed: boolean): Promise<void> {
+		const task = this._taskManager.getActiveTask(taskId)!;
+		if (!task) {
+			throw new Error(`Tried to interact with an inactive task ${taskId} (active task is ${this._taskManager.getActiveTaskId()})`);
+		}
+		await task.humanConfirmCode(confirmed);
+	}
+
+	private async rpcJouleHumanChat(taskId: string, text: string): Promise<void> {
 		const task = this._taskManager.getActiveTask(taskId)!;
 		if (!task) {
 			throw new Error(`Tried to chat with an inactive task ${taskId} (active task is ${this._taskManager.getActiveTaskId()})`);
 		}
-		return task.startResponse(text);
+		await task.humanChat(text);
+	}
+
+	private rpcStartBotTurn(taskId: string) {
+		const task = this._taskManager.getActiveTask(taskId)!;
+		if (!task) {
+			throw new Error(`Tried to interact with an inactive task ${taskId} (active task is ${this._taskManager.getActiveTaskId()})`);
+		}
+		task.startBotTurn();
 	}
 
 	private async rpcStopResponse(taskId: string): Promise<void> {
@@ -478,6 +496,12 @@ export class HelloWorldPanel implements WebviewViewProvider {
 		if (!task) {
 			throw new Error(`Tried to stop operation with an inactive task ${taskId}`);
 		}
-		task.stopResponse();
+		task.stopBotTurn();
+	}
+
+	private async rpcGetMeltyConfig(): Promise<MeltyConfig> {
+		return {
+			debugMode: config.getDebugMode(),
+		};
 	}
 }

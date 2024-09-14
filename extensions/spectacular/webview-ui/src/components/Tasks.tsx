@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import * as vscode from "vscode";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
-import { RpcClient } from "RpcClient";
+import { RpcClient } from "../RpcClient";
 import { Button } from "./ui/button";
 import {
 	ArrowUp,
@@ -18,7 +17,7 @@ import { MouseEvent, KeyboardEvent } from "react";
 import Ascii from "./Ascii";
 import OnboardingSection from './OnboardingSection';
 import "diff2html/bundles/css/diff2html.min.css";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AutoExpandingTextarea from "./AutoExpandingTextarea";
 import { DehydratedTask, TaskMode, AssistantInfo } from "../types";
 import {
@@ -30,9 +29,9 @@ import {
 } from "./ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { AddFileButton } from "./AddFileButton";
-import * as strings from "../utilities/strings";
+import * as strings from "@/utilities/strings";
 import { FastFilePicker } from "./FastFilePicker";
-import { EventManager } from "../eventManager";
+import { EventManager } from "@/eventManager";
 
 // Utility function to format the date
 function formatDate(date: Date): string {
@@ -143,8 +142,9 @@ export function Tasks({
 		[fetchTasks]
 	);
 
-	const handleSendMessage = useCallback((text: string, taskId: string) => {
-		rpcClient.run("chatMessage", { text, taskId });
+	const handleSendMessage = useCallback(async (text: string, taskId: string) => {
+		await rpcClient.run("createJouleHumanChat", { text, taskId });
+		rpcClient.run("startBotTurn", { taskId });
 	}, []);
 
 	/* =====================================================
@@ -303,12 +303,12 @@ export function Tasks({
 
 	return (
 		<div>
-
-			{gitConfigError !== "" ? (
+			{gitConfigError === null ? (
+				<LoaderCircle className="animate-spin text-gray-500 mr-2 h-4 w-4" />
+			) : gitConfigError !== "" ? (
 				gitConfigError?.includes("Open a workspace folder") ?
 					<div className="bg-background text-foreground p-4">
 						<div className="text-center">
-
 							<Ascii />
 
 							<h2 className="mt-12 text-lg font-bold">Where should I work?</h2>
@@ -354,7 +354,7 @@ export function Tasks({
 								value={messageText}
 								onChange={(e) => setMessageText(e.target.value)}
 								onKeyDown={handleKeyDown}
-								className="flex-grow p-3 pr-12 pb-12"
+								className="flex-grow p-3 pr-12 pb-12 max-h-[30vh] overflow-y-auto"
 								ref={textareaRef}
 								autoFocus={true}
 								required
@@ -523,22 +523,8 @@ export function Tasks({
 						</>
 					}
 					<div className="mt-4 flex items-center">
-						{gitConfigError === null ? (
-							<>
-								<LoaderCircle className="animate-spin text-gray-500 mr-2 h-4 w-4" />
-								<span>Checking Git configuration...</span>
-							</>
-						) : gitConfigError === "" ? (
-							<>
-								<CheckCircle className="text-green-500 mr-2 h-4 w-4" />
-								<span>Git configured</span>
-							</>
-						) : (
-							<>
-								<XCircle className="text-red-500 mr-2 h-4 w-4" />
-								<span>Git configuration error: {gitConfigError}</span>
-							</>
-						)}
+						<CheckCircle className="text-green-500 mr-2 h-4 w-4" />
+						<span>Git configured</span>
 					</div>
 				</>
 			)}
