@@ -26,7 +26,7 @@ export function nextJouleType(joule: Joule): JouleType {
 					return "HumanChat"; // needed for error joules. todo get rid of this.
 			}
 		case "HumanConfirmCode":
-			return joule.confirmed ? "BotCode" : "BotChat";
+			return joule.confirmed ? "BotCode" : "HumanChat";
 	}
 }
 
@@ -87,7 +87,7 @@ export type DehydratedTask = {
 };
 
 export type ContextPaths = {
-	readonly paths: string[];
+	readonly relativePaths: string[];
 	meltyRoot: string;
 };
 
